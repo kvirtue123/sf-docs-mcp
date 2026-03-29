@@ -15,8 +15,8 @@ It is aimed at **solution engineers**, **admins**, and **developers**: you can u
 ## Setup
 
 ```bash
-git clone <your-fork-or-repo-url>.git
-cd <repo-directory>
+git clone https://github.com/kvirtue/sf-docs-mcp.git
+cd sf-docs-mcp
 npm install
 npm run build
 npx playwright install chromium   # needed for developer.salesforce.com
