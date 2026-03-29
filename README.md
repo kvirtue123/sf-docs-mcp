@@ -4,42 +4,57 @@ An [MCP](https://modelcontextprotocol.io/) server that pulls **Salesforce Help**
 
 It is aimed at **solution engineers**, **admins**, and **developers**: you can use it without touching the code, or run the CLI and tests below when you need to verify a setup.
 
-- **help.salesforce.com** — fetched over HTTP via Salesforce’s Aura API (no browser on your machine).
-- **developer.salesforce.com** — fetched with Playwright and a stealth plugin, because those pages use Shadow DOM / LWC and need a real Chromium instance.
+## Why this exists
+
+`help.salesforce.com` serves mostly an HTML shell; article bodies load via JavaScript. **Salesforce Locker Service blocks typical browser automation** (Playwright, Puppeteer, Selenium) by detecting the Chrome DevTools Protocol, so scraping Help in a headless browser is not viable.
+
+This server uses two paths:
+
+- **help.salesforce.com** — Calls Salesforce’s Aura API over HTTP with `fetch()` (no browser, no CDP).
+- **developer.salesforce.com** — Uses Playwright with a stealth plugin, because those pages rely on Shadow DOM / LWC and need real Chromium.
+
+Credit: The developer extractor builds on [`salesforcebob/sf-doc-scraper`](https://github.com/salesforcebob/sf-doc-scraper). The Aura-based Help path is separate.
 
 ## Requirements
 
-- **Node.js** — Use an **LTS** release (**20.x** or **22.x** recommended; **18.x** is still allowed). Avoid **Node 25+** (“Current”): `better-sqlite3` often has **no prebuilt binary** for those versions, so `npm install` may try to compile native code and fail (for example missing **C++20** flags on your machine).
+- **Node.js** — Use an **LTS** release (**20.x** or **22.x** recommended). **18.x** is still allowed (`package.json` allows `>=18` and `<25`). Avoid **Node 25+** (“Current”): `better-sqlite3` often has **no prebuilt binary** for those versions, so `npm install` may try to compile native code and fail (for example missing **C++20** toolchain).
 - After `npm install`, for developer docs: `npx playwright install chromium`
 
 `package.json` declares `engines.node` as **>=18 and <25** so `npm` can warn if your Node is too new.
 
 ### If `npm install` fails on `better-sqlite3`
 
-Switch to Node **22** or **20**, remove `node_modules`, and install again:
+Use Node **22** or **20** (see **Requirements**), remove `node_modules`, and install again. Example with **nvm**:
 
 ```bash
-# Example with nvm
 nvm install 22
 nvm use 22
 node -v   # expect v22.x.x
 
-cd sf-docs-mcp
+cd /path/to/this-repo    # repository root: the folder that contains package.json and src/
 rm -rf node_modules
 npm install
 ```
 
-Also avoid odd shell errors from **spaces in the folder path** (e.g. `Web Surfing/sf-docs-mcp`): `cd` into the directory first, or quote paths in scripts.
+Also avoid odd shell errors from **spaces in the folder path** (e.g. `Documents/Web Projects/sf-docs-mcp`): `cd` into the directory first, or quote paths in scripts.
 
 ## Setup
 
+The Node package is the **repository root** (the directory with `package.json`, `src/`, and `tsconfig.json`).
+
 ```bash
 git clone https://github.com/kvirtue/sf-docs-mcp.git
-cd sf-docs-mcp
+cd sf-docs-mcp   # default clone folder name; use your repo root if different
 npm install
 npm run build
 npx playwright install chromium   # needed for developer.salesforce.com
 ```
+
+### Why is `sf-docs-mcp/` sometimes empty?
+
+If you clone GitHub’s `sf-docs-mcp` repo, the **clone directory** is often named `sf-docs-mcp`, and that directory **is** the project root—everything lives there.
+
+If your workspace is a **parent** folder (for example you named the checkout `SF-Document-Scrape`), the real package is still the folder that contains `package.json` and `src/`. An **extra** empty `sf-docs-mcp/` next to those files is not the app; it is safe to remove (`rmdir sf-docs-mcp` if it is empty).
 
 ## Cursor (MCP)
 
@@ -113,12 +128,22 @@ The table is named `cache` and holds: `url`, `title`, `markdown`, `pageType`, `e
 - **Clear cache:** stop the MCP server, delete `sf-docs-cache.db`, restart.
 - **Custom database path:** set `SF_DOCS_CACHE_DB` to an absolute path before starting the server (tests or separate cache per project).
 
+## Troubleshooting
+
+- **`npm install` / `better-sqlite3` and C++ or compile errors** — You are likely on Node 25+ or an unsupported version. Switch to Node **22** or **20** (see **If `npm install` fails on `better-sqlite3`**).
+- **`EBADENGINE` from npm** — Often a warning only; if the install still fails on `better-sqlite3`, fix Node version as above.
+- **Help articles empty or errors after a Salesforce release** — Aura `fwuid` rotates ~3x/year; the server tries to refresh automatically. If it keeps failing, see **Salesforce `fwuid`** and `src/extractors/help-sf.ts` (`KNOWN_FWUID`, `KNOWN_LOADED_HASH`).
+- **Developer pages return little or no Markdown** — Prefer guide URLs (`/docs/.../guide/...`); use `analyze_page_structure` to diagnose. See **Scope, limits** above.
+- **`npx playwright install chromium` slow or fails** — Downloads a Chromium binary (~150 MB); needs network and disk space. Only required for **developer.salesforce.com**; Help does not use Playwright.
+
 ## Verify locally
 
 ```bash
 npm run test-url -- "https://help.salesforce.com/s/articleView?id=ind.psc_admin_concept_psc_welcom.htm&type=5"
 npm run test-url -- "https://developer.salesforce.com/docs/einstein/genai/guide/get-started.html"
 ```
+
+Expected: Help returns `pageType: "help-article"` with substantial body text; Developer returns `pageType: "guide"` with Markdown.
 
 ### Pre-release testing (for distributors)
 
