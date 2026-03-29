@@ -9,8 +9,27 @@ It is aimed at **solution engineers**, **admins**, and **developers**: you can u
 
 ## Requirements
 
-- Node.js **18+**
+- **Node.js** — Use an **LTS** release (**20.x** or **22.x** recommended; **18.x** is still allowed). Avoid **Node 25+** (“Current”): `better-sqlite3` often has **no prebuilt binary** for those versions, so `npm install` may try to compile native code and fail (for example missing **C++20** flags on your machine).
 - After `npm install`, for developer docs: `npx playwright install chromium`
+
+`package.json` declares `engines.node` as **>=18 and <25** so `npm` can warn if your Node is too new.
+
+### If `npm install` fails on `better-sqlite3`
+
+Switch to Node **22** or **20**, remove `node_modules`, and install again:
+
+```bash
+# Example with nvm
+nvm install 22
+nvm use 22
+node -v   # expect v22.x.x
+
+cd sf-docs-mcp
+rm -rf node_modules
+npm install
+```
+
+Also avoid odd shell errors from **spaces in the folder path** (e.g. `Web Surfing/sf-docs-mcp`): `cd` into the directory first, or quote paths in scripts.
 
 ## Setup
 
@@ -105,7 +124,7 @@ npm run test-url -- "https://developer.salesforce.com/docs/einstein/genai/guide/
 
 Before tagging or handing the package to other solution engineers:
 
-1. **Environment matrix** — On **macOS, Windows, or Linux** (as applicable), run `npm ci`, `npm run build`, `npm run typecheck`, and `npx playwright install chromium`. Confirm at least **Node.js 18.x and 20.x** if your audience uses both (e.g. `nvm use 18` / `nvm use 20`).
+1. **Environment matrix** — On **macOS, Windows, or Linux** (as applicable), run `npm ci`, `npm run build`, `npm run typecheck`, and `npx playwright install chromium`. Confirm **Node 22.x** (or **20.x**; **18.x** if you still support it). Avoid **Node 25+** for `npm install` (see **Requirements**).
 2. **Automated suite** (requires network):
 
    ```bash

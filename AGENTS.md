@@ -32,6 +32,7 @@ npm run test:release
 Runs `regression-urls.json` cases plus smoke tests (allowlist, SQLite cache miss/hit with `SF_DOCS_CACHE_DB`, parallel scrapes, SSE listen, `analyze_page_structure` on a developer URL).
 
 ## Key Notes
+- Use **Node 18–24** (LTS **20** or **22** recommended). **Node 25+** is unsupported by `engines` and often breaks `better-sqlite3` (no prebuild → native compile failures).
 - `help-sf.ts` has **zero** Playwright dependency — it uses only native `fetch()`
 - The `release` parameter is sent as empty string `""` to always get the latest version
 - `aura.token = null` — no authentication needed for public articles
