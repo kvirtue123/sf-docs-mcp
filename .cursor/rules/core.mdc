@@ -1,0 +1,30 @@
+---
+description: Always-on rules for the SF Docs MCP project
+globs: **/*
+---
+
+# SF Docs MCP — Development Rules
+
+## Architecture
+- `help.salesforce.com` extraction uses the Aura API via native `fetch()` — NO Playwright
+- `developer.salesforce.com` extraction uses Playwright with stealth plugin
+- All extractors implement the `Extractor` interface from `src/types.ts`
+- Cache layer is SQLite via `better-sqlite3` with 24-hour TTL
+
+## Key Files
+- `src/extractors/help-sf.ts` — Most critical file. Aura API integration.
+- `src/extractors/developer-sf.ts` — Playwright-based extraction.
+- `src/extractors/index.ts` — URL routing and cache integration.
+- `src/mcp-server.ts` — MCP tool definitions. Thin wiring only.
+
+## Testing
+Always verify changes with:
+```bash
+npm run test-url -- "https://help.salesforce.com/s/articleView?id=ind.psc_admin_concept_psc_welcom.htm&type=5"
+```
+
+## Important
+- The `fwuid` rotates ~3x/year. The extractor self-heals by scraping the homepage.
+- `aura.token` is always `null` for public articles.
+- `release: ""` fetches the latest version.
+- Never introduce browser automation for help.salesforce.com — Salesforce Locker Service detects CDP.

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "sf-docs": {
+      "command": "node",
+      "args": ["${workspaceFolder}/dist/mcp-server.js"]
+    }
+  }
+}

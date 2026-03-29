@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.cache/
+
+# SQLite cache (runtime; path override via SF_DOCS_CACHE_DB still uses same filenames locally)
+sf-docs-cache.db
+sf-docs-cache.db-journal
+sf-docs-cache.db-wal
+sf-docs-cache.db-shm
+
+*.js.map
+
+# Local tooling / secrets
+.claude/
+.DS_Store
+.env
+.env.*

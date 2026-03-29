@@ -1,0 +1,59 @@
+{
+  "cases": [
+    {
+      "id": "H1",
+      "description": "Standard Public Sector welcome article",
+      "url": "https://help.salesforce.com/s/articleView?id=ind.psc_admin_concept_psc_welcom.htm&type=5",
+      "minMarkdownLength": 1000,
+      "expectPageType": "help-article"
+    },
+    {
+      "id": "H2",
+      "description": "Help article with tables/lists (enforcement actions)",
+      "url": "https://help.salesforce.com/s/articleView?id=ind.psc_create_violation_enforcement_action.htm&type=5",
+      "minMarkdownLength": 400,
+      "expectPageType": "help-article"
+    },
+    {
+      "id": "H3",
+      "description": "Aura no-record edge (must fail cleanly)",
+      "url": "https://help.salesforce.com/s/articleView?id=ind.psc_regulatory_code_violation.htm&type=5",
+      "expectError": true
+    },
+    {
+      "id": "H4a",
+      "description": "URL normalization — base articleView",
+      "url": "https://help.salesforce.com/s/articleView?id=ind.psc_user_task_launch_inspection_app.htm&type=5",
+      "minMarkdownLength": 400,
+      "expectPageType": "help-article"
+    },
+    {
+      "id": "H4b",
+      "description": "URL normalization — same doc with language param",
+      "url": "https://help.salesforce.com/s/articleView?id=ind.psc_user_task_launch_inspection_app.htm&type=5&language=en_US",
+      "minMarkdownLength": 400,
+      "expectPageType": "help-article"
+    },
+    {
+      "id": "D1",
+      "description": "Developer guide (GenAI)",
+      "url": "https://developer.salesforce.com/docs/einstein/genai/guide/get-started.html",
+      "minMarkdownLength": 500,
+      "expectPageType": "guide"
+    },
+    {
+      "id": "D2",
+      "description": "Second developer guide (data model notation; many reference pages return empty from extractor)",
+      "url": "https://developer.salesforce.com/docs/platform/data-models/guide/salesforce-data-model-notation.html",
+      "minMarkdownLength": 2000,
+      "expectPageType": "guide"
+    },
+    {
+      "id": "D3",
+      "description": "Data model gallery (LWC / dense)",
+      "url": "https://developer.salesforce.com/docs/platform/data-models/guide/regulatory-area-fees-enforcement.html",
+      "minMarkdownLength": 200,
+      "expectPageType": "guide"
+    }
+  ]
+}
