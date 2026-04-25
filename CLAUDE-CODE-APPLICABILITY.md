@@ -1,10 +1,4 @@
-# Claude Code Applicability Assessment — sf-docs-mcp
-
-This document assesses whether the **sf-docs-mcp** server is a good fit for use inside **Claude Code** (the Anthropic CLI). It is an honest compatibility + tradeoff review, not marketing copy.
-
-## TL;DR
-
-**Yes — this MCP works with Claude Code out of the box** via `claude mcp add` on stdio transport. It is a strong fit for Solution Engineers, Salesforce developers, and admins who spend significant time reading `help.salesforce.com` and `developer.salesforce.com` from the CLI. It is a weak fit for workflows that are mostly non-Salesforce, fully offline, or that need to scrape other hosts.
+# Claude Code Installation — sf-docs-mcp
 
 ## 1. How to wire it up
 
