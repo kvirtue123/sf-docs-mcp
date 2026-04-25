@@ -5,6 +5,7 @@
   "type": "module",
   "main": "dist/mcp-server.js",
   "scripts": {
+    "setup": "bash scripts/setup.sh",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "start": "node dist/mcp-server.js",

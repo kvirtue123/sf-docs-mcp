@@ -10,49 +10,93 @@ It is aimed at **solution engineers**, **admins**, and **developers**: you can u
 
 This server uses two paths:
 
-- **help.salesforce.com** — Calls Salesforce’s Aura API over HTTP with `fetch()` (no browser, no CDP).
+- **help.salesforce.com** — Calls Salesforce's Aura API over HTTP with `fetch()` (no browser, no CDP).
 - **developer.salesforce.com** — Uses Playwright with a stealth plugin, because those pages rely on Shadow DOM / LWC and need real Chromium.
 
 Credit: The developer extractor builds on [`salesforcebob/sf-doc-scraper`](https://github.com/salesforcebob/sf-doc-scraper). The Aura-based Help path is separate.
 
 ## Requirements
 
-- **Node.js** — Use an **LTS** release (**20.x** or **22.x** recommended). **18.x** is still allowed (`package.json` allows `>=18` and `<25`). Avoid **Node 25+** (“Current”): `better-sqlite3` often has **no prebuilt binary** for those versions, so `npm install` may try to compile native code and fail (for example missing **C++20** toolchain).
+- **Node.js** — Use an **LTS** release (**20.x** or **22.x** recommended). **18.x** is still allowed (`package.json` allows `>=18` and `<25`). Avoid **Node 25+** ("Current"): `better-sqlite3` often has **no prebuilt binary** for those versions, so `npm install` may try to compile native code and fail (for example missing **C++20** toolchain).
 - After `npm install`, for developer docs: `npx playwright install chromium`
 
 `package.json` declares `engines.node` as **>=18 and <25** so `npm` can warn if your Node is too new.
 
-### If `npm install` fails on `better-sqlite3`
+## Setup
 
-Use Node **22** or **20** (see **Requirements**), remove `node_modules`, and install again. Example with **nvm**:
+The Node package is the **repository root** (the directory with `package.json`, `src/`, and `tsconfig.json`).
+
+### Step 0 — Check your Node version first
+
+```bash
+node -v
+```
+
+- **v18, v20, v22, v23, or v24** → you're good, skip to **Step 1 (Clone & install)**.
+- **v25 or higher** → switch to Node 22 before continuing (see below).
+- **"command not found"** → install Node via nvm (see below).
+
+#### Switch to Node 22 (only needed if you're on v25+ or Node is missing)
+
+**Path A — I already have nvm:**
 
 ```bash
 nvm install 22
 nvm use 22
 node -v   # expect v22.x.x
+```
 
-cd /path/to/this-repo    # repository root: the folder that contains package.json and src/
+**Path B — I don't have nvm yet:**
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+nvm install 22
+nvm use 22
+node -v   # expect v22.x.x
+```
+
+> The two `export`/`source` lines load nvm into your **current terminal** so you don't have to close and reopen it.
+
+### Step 1 — Clone & install
+
+The easiest path is the one-shot setup script — it checks your Node version, installs dependencies, compiles TypeScript, installs Chromium, runs a smoke check, and prints the absolute path you'll need for the Cursor config:
+
+```bash
+git clone https://github.com/kvirtue/sf-docs-mcp.git
+cd sf-docs-mcp
+npm run setup
+```
+
+Or run the steps manually if you prefer:
+
+```bash
+git clone https://github.com/kvirtue/sf-docs-mcp.git
+cd sf-docs-mcp
+npm install
+npm run build
+npx playwright install chromium   # needed for developer.salesforce.com
+```
+
+> **Windows users:** `npm run setup` requires bash and is not supported in native Windows shells (cmd.exe, PowerShell, or Git Bash). Use the manual steps above, or run from **WSL** (Windows Subsystem for Linux). Everything else — `npm install`, `npm run build`, `npx playwright install chromium` — works natively on Windows.
+
+### If `npm install` fails on `better-sqlite3`
+
+You are likely on Node 25+. Switch to Node 22 (see **Step 0** above), remove `node_modules`, and install again:
+
+```bash
 rm -rf node_modules
 npm install
 ```
 
 Also avoid odd shell errors from **spaces in the folder path** (e.g. `Documents/Web Projects/sf-docs-mcp`): `cd` into the directory first, or quote paths in scripts.
 
-## Setup
-
-The Node package is the **repository root** (the directory with `package.json`, `src/`, and `tsconfig.json`).
-
-```bash
-git clone https://github.com/kvirtue/sf-docs-mcp.git
-cd sf-docs-mcp   # default clone folder name; use your repo root if different
-npm install
-npm run build
-npx playwright install chromium   # needed for developer.salesforce.com
-```
-
 ### Why is `sf-docs-mcp/` sometimes empty?
 
-If you clone GitHub’s `sf-docs-mcp` repo, the **clone directory** is often named `sf-docs-mcp`, and that directory **is** the project root—everything lives there.
+If you clone GitHub's `sf-docs-mcp` repo, the **clone directory** is often named `sf-docs-mcp`, and that directory **is** the project root — everything lives there.
 
 If your workspace is a **parent** folder (for example you named the checkout `SF-Document-Scrape`), the real package is still the folder that contains `package.json` and `src/`. An **extra** empty `sf-docs-mcp/` next to those files is not the app; it is safe to remove (`rmdir sf-docs-mcp` if it is empty).
 
@@ -62,9 +106,15 @@ This repo includes **project-level** MCP config in [`.cursor/mcp.json`](.cursor/
 
 `${workspaceFolder}/dist/mcp-server.js`
 
-**In Cursor:** open this repository as the workspace folder (the directory that contains `package.json` and `src/`), then **reload MCP** or restart Cursor.
+> **Important:** Open this repository **as the workspace folder** (the directory that contains `package.json` and `src/`) in Cursor, then **reload MCP** or restart Cursor.
+>
+> **If sf-docs-mcp is a sub-folder of another workspace** (e.g. you cloned it inside an existing project), the project-level `.cursor/mcp.json` will **not** work because `${workspaceFolder}` resolves to the parent. Use the **global config** below instead.
 
-If Cursor is pointed at a **different** workspace, add the server under **global** MCP config instead (`~/.cursor/mcp.json`) with an **absolute** path to `dist/mcp-server.js` inside your clone:
+### Adding to global `~/.cursor/mcp.json`
+
+`npm run setup` prints the exact absolute path to `dist/mcp-server.js` — copy that value into the config below.
+
+**If `~/.cursor/mcp.json` does not exist yet**, create it with:
 
 ```json
 {
@@ -77,12 +127,26 @@ If Cursor is pointed at a **different** workspace, add the server under **global
 }
 ```
 
+**If `~/.cursor/mcp.json` already has other servers**, add only the inner key inside the existing `"mcpServers"` object (don't paste the outer wrapper — that causes a JSON parse error):
+
+```jsonc
+// Inside the existing "mcpServers": { ... } block, after the last server entry:
+"sf-docs": {
+  "command": "node",
+  "args": ["/absolute/path/to/clone/dist/mcp-server.js"]
+}
+```
+
+> On macOS, the absolute path may contain spaces (e.g. a Google Drive path like `.../My Drive/...`). JSON strings handle spaces fine — no quoting tricks needed.
+
+After saving, **reload MCP** in Cursor (Command Palette → "MCP: Reload Servers") or restart Cursor.
+
 ## Tools
 
 | Tool | Description |
 |------|-------------|
 | `scrape_sf_docs` | Give a full **Help** or **Developer** docs URL; get back Markdown plus a short header (title, source, type, whether it came from cache, timestamp). |
-| `analyze_page_structure` | **developer.salesforce.com only** — inspect the page’s DOM / shadow roots / custom elements when a scrape returns little or no text. |
+| `analyze_page_structure` | **developer.salesforce.com only** — inspect the page's DOM / shadow roots / custom elements when a scrape returns little or no text. |
 
 Only these two hosts are accepted: `help.salesforce.com` and `developer.salesforce.com`.
 
@@ -92,17 +156,17 @@ The tools **fetch one page at a time**. Everything else—summaries, comparisons
 
 **Examples:**
 
-- “Use **scrape_sf_docs** on [URL] and give me **five bullets** for a customer email.”
-- “Scrape [URL] and **list the steps** in order for someone who is not technical.”
-- “Scrape [URL A] and [URL B], then **compare** permissions or editions in a **small table**.”
-- “Scrape [URL] and **answer** whether mobile users can do X, citing the doc.”
-- If Developer Markdown looks empty: “Run **analyze_page_structure** on that URL and explain what might be blocking the content.”
+- "Use **scrape_sf_docs** on [URL] and give me **five bullets** for a customer email."
+- "Scrape [URL] and **list the steps** in order for someone who is not technical."
+- "Scrape [URL A] and [URL B], then **compare** permissions or editions in a **small table**."
+- "Scrape [URL] and **answer** whether mobile users can do X, citing the doc."
+- If Developer Markdown looks empty: "Run **analyze_page_structure** on that URL and explain what might be blocking the content."
 
 You can work through **many URLs in one conversation** (one scrape per link is typical). This is **not** a general web crawler: it does **not** support random websites, Trailhead unless the page lives on one of the two hosts above, or logging into private Help.
 
-## Scope, limits, and what “good” looks like
+## Scope, limits, and what "good" looks like
 
-**Which “sites” are supported?**  
+**Which "sites" are supported?**  
 Only the two Salesforce doc domains above. Within them, you can request as many **individual article or guide URLs** as you need; the server has been smoke-tested with concurrent scrapes, though your editor may still run tool calls sequentially.
 
 **How much content?**  
@@ -130,8 +194,9 @@ The table is named `cache` and holds: `url`, `title`, `markdown`, `pageType`, `e
 
 ## Troubleshooting
 
-- **`npm install` / `better-sqlite3` and C++ or compile errors** — You are likely on Node 25+ or an unsupported version. Switch to Node **22** or **20** (see **If `npm install` fails on `better-sqlite3`**).
+- **`npm install` / `better-sqlite3` and C++ or compile errors** — You are likely on Node 25+ or an unsupported version. Switch to Node **22** or **20** (see **Step 0** above).
 - **`EBADENGINE` from npm** — Often a warning only; if the install still fails on `better-sqlite3`, fix Node version as above.
+- **`nvm: command not found` after running the curl install** — nvm was installed but hasn't been loaded yet. Run the two `export`/`source` lines from **Path B** above, then retry `nvm install 22`.
 - **Help articles empty or errors after a Salesforce release** — Aura `fwuid` rotates ~3x/year; the server tries to refresh automatically. If it keeps failing, see **Salesforce `fwuid`** and `src/extractors/help-sf.ts` (`KNOWN_FWUID`, `KNOWN_LOADED_HASH`).
 - **Developer pages return little or no Markdown** — Prefer guide URLs (`/docs/.../guide/...`); use `analyze_page_structure` to diagnose. See **Scope, limits** above.
 - **`npx playwright install chromium` slow or fails** — Downloads a Chromium binary (~150 MB); needs network and disk space. Only required for **developer.salesforce.com**; Help does not use Playwright.
@@ -166,6 +231,7 @@ Before tagging or handing the package to other solution engineers:
 
 | Command | Purpose |
 |---------|---------|
+| `npm run setup` | One-shot install + build + Playwright + smoke check; prints Node version guidance and the absolute path to `dist/mcp-server.js` |
 | `npm run build` | Compile TypeScript to `dist/` |
 | `npm run typecheck` | Typecheck without emitting |
 | `npm run start` | Run MCP over **stdio** (default for Cursor) |
