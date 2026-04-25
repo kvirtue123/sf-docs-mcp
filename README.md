@@ -4,7 +4,7 @@ An [MCP](https://modelcontextprotocol.io/) server that pulls **Salesforce Help**
 
 It is aimed at **solution engineers**, **admins**, and **developers**: you can use it without touching the code, or run the CLI and tests below when you need to verify a setup.
 
-**For Claude Code install see ['Claude Code Applicability'](https://github.com/kvirtue123/sf-docs-mcp/edit/main/CLAUDE-CODE-APPLICABLITY.md).**
+**For Claude Code install see [Claude Code Applicability](https://github.com/kvirtue123/sf-docs-mcp/blob/main/CLAUDE-CODE-APPLICABILITY.md).**
 
 ## Why this exists
 
