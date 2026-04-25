@@ -9,12 +9,20 @@ const AURA_ENDPOINT = `${BASE_URL}/s/sfsites/aura?r=30&aura.ApexAction.execute=1
 let KNOWN_FWUID =
   "VEhtaDlVRkdCeTJiZFhuOTVYYjRJQTJEa1N5enhOU3R5QWl2VzNveFZTbGcxMy4tMjE0NzQ4MzY0OC4xMzEwNzIwMA";
 let KNOWN_LOADED_HASH = "1533_ez-GoXD6UAAJ6rtTbHErdw";
+const KNOWN_RELEASE_FALLBACK = "260.0.0";
 
 let cachedFwuid: string | null = null;
 let cachedLoadedHash: string | null = null;
 let cachedRelease: string | null = null;
 let fwuidCachedAt = 0;
 const FWUID_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+
+// Emit each fallback warning at most once per process lifetime to avoid
+// spamming stderr when the homepage regex consistently misses (e.g. after
+// a Salesforce release changes the marker format). We still re-scrape on
+// every call in this state — only the warning is suppressed after the first.
+let hasWarnedFwuidFallback = false;
+let hasWarnedLoadedHashFallback = false;
 
 interface AuraConfig {
   fwuid: string;
@@ -25,6 +33,10 @@ interface AuraConfig {
 /**
  * Scrape the help.salesforce.com homepage to extract the current fwuid,
  * loaded application hash, and release version.
+ *
+ * If either regex misses, we return the hard-coded KNOWN_* fallbacks but
+ * deliberately do NOT update fwuidCachedAt — the next call will re-scrape
+ * rather than serving the frozen constants for 12 h.
  */
 async function refreshFwuid(): Promise<AuraConfig> {
   const now = Date.now();
@@ -52,21 +64,42 @@ async function refreshFwuid(): Promise<AuraConfig> {
   // Extract release version from the page (e.g. "260.0.0")
   const releaseMatch = html.match(/siteUserRelease[=:]["']?(\d+\.\d+\.\d+)/);
 
+  let usedFallback = false;
+
   if (fwuidMatch) {
     cachedFwuid = fwuidMatch[1];
   } else {
+    if (!hasWarnedFwuidFallback) {
+      console.warn(
+        "[sf-docs-mcp] refreshFwuid: fwuid regex missed — using KNOWN_FWUID fallback (may be stale). Update KNOWN_FWUID in help-sf.ts if Help articles keep failing."
+      );
+      hasWarnedFwuidFallback = true;
+    }
     cachedFwuid = KNOWN_FWUID;
+    usedFallback = true;
   }
 
   if (loadedMatch) {
     cachedLoadedHash = loadedMatch[1];
   } else {
+    if (!hasWarnedLoadedHashFallback) {
+      console.warn(
+        "[sf-docs-mcp] refreshFwuid: loadedHash regex missed — using KNOWN_LOADED_HASH fallback (may be stale). Update KNOWN_LOADED_HASH in help-sf.ts if Help articles keep failing."
+      );
+      hasWarnedLoadedHashFallback = true;
+    }
     cachedLoadedHash = KNOWN_LOADED_HASH;
+    usedFallback = true;
   }
 
-  cachedRelease = releaseMatch ? releaseMatch[1] : "260.0.0";
+  cachedRelease = releaseMatch ? releaseMatch[1] : KNOWN_RELEASE_FALLBACK;
 
-  fwuidCachedAt = now;
+  // Only freeze the cache when both critical values came from the live page.
+  // On fallback, leave fwuidCachedAt at 0 so the next call re-scrapes.
+  if (!usedFallback) {
+    fwuidCachedAt = now;
+  }
+
   return { fwuid: cachedFwuid, loadedHash: cachedLoadedHash, release: cachedRelease };
 }
 

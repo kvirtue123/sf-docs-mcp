@@ -1,6 +1,6 @@
 import TurndownService from "turndown";
 import { gfm } from "turndown-plugin-gfm";
-import { getStealthPage, closeBrowser } from "./base.js";
+import { getStealthPage } from "./base.js";
 import type { Extractor, ExtractResult } from "../types.js";
 
 function createTurndown(): TurndownService {
@@ -41,13 +41,23 @@ export class DeveloperSfExtractor implements Extractor {
     const page = await getStealthPage();
 
     try {
+      // domcontentloaded is more reliable than networkidle on dev docs pages
+      // that keep long-polling analytics connections open.
       await page.goto(url, {
-        waitUntil: "networkidle",
+        waitUntil: "domcontentloaded",
         timeout: 30000,
       });
 
-      // Wait a bit for any client-side rendering
-      await page.waitForTimeout(2000);
+      // Wait for Salesforce doc content components specifically — not bare
+      // <main>, which exists as an empty shell before LWC hydration completes
+      // and would cause Strategy 3 to fire too early and return nothing useful.
+      await page
+        .waitForSelector("doc-content-layout, doc-amf-reference", {
+          timeout: 10000,
+        })
+        .catch(() => {
+          /* neither component appeared — Strategy 3–5 fallback chain will run */
+        });
 
       // Fallback chain to extract content
       const { title, html } = await page.evaluate(() => {
@@ -85,10 +95,16 @@ export class DeveloperSfExtractor implements Extractor {
                 };
               }
             }
-            // fallback: entire shadow root
+            // Fallback: serialize shadow root children after stripping
+            // <script> and <style> so the resulting Markdown isn't polluted
+            // with component CSS and bootstrap code.
+            const clone = docLayout.shadowRoot.cloneNode(true) as DocumentFragment;
+            clone.querySelectorAll("script, style").forEach((n) => n.remove());
+            const container = document.createElement("div");
+            container.append(...Array.from(clone.childNodes));
             return {
               title: pageTitle,
-              html: docLayout.shadowRoot.innerHTML,
+              html: container.innerHTML,
             };
           }
         }
